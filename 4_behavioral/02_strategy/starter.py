@@ -44,6 +44,12 @@ class TaskPriority(Enum):
     URGENT = "urgent"
 
 
+class Strategies(Enum):
+    STANDARD = "standard"
+    BACKGROUND = "background"
+    URGENT = "urgent"
+
+
 class WorkflowTask:
     """Zadanie w workflow system"""
 
@@ -58,6 +64,12 @@ class WorkflowTask:
         """Oznacz zadanie jako ukończone"""
         self.completed_at = datetime.now()
 
+    def get_status(self) -> str | None:
+        if self.completed_at:
+            return 'completed'
+        else:
+            return None
+
 
 # %% Strategy Interface - GOTOWE
 # WZORZEC: Strategy (interfejs strategii)
@@ -71,6 +83,25 @@ class TaskProcessor(ABC):
         pass
 
 
+class TaskTimer:
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+
+    def start_timer(self):
+        self.start_time = time.time()
+
+    def end_timer(self):
+        self.end_time = time.time()
+
+    def get_execution_time(self) -> float:
+        if not self.end_time:
+            self.end_timer()
+
+        return self.end_time - self.start_time
+
+
+
 # %% Concrete Strategies - DO IMPLEMENTACJI
 # WZORZEC: Concrete Strategy (konkretna strategia)
 
@@ -78,13 +109,33 @@ class TaskProcessor(ABC):
 # Dziedziczy po TaskProcessor
 # Metoda process_task(task: WorkflowTask) -> Dict[str, Any]:
 #   - Zapisz start time (time.time())
-#   - Walidacja: sprawdź czy task.priority == URGENT i description nie jest puste
+#   - Walidacja: sprawdź czy task.priority == URGENT i description nie jest puste  # TODO: test_validation_differences dopytać czemu jest ustawiane MEDIUM
 #   - Natychmiastowe przetwarzanie (bez delay, bez time.sleep)
 #   - Oznacz zadanie jako completed (task.mark_completed())
 #   - Zwróć dict z kluczami: "status" (str), "processing_time" (float), "strategy_used" (str = "urgent"), "validation_passed" (bool)
 
-class UrgentTaskProcessor:
-    pass
+class UrgentTaskProcessor(TaskProcessor, TaskTimer):
+    def __init__(self):
+        super().__init__()
+
+    def __str__(self):
+        return Strategies.URGENT.value
+
+    def validate_task(self, task: WorkflowTask) -> bool:
+        return bool(task.priority == TaskPriority.URGENT and task.description)
+
+    def process_task(self, task: WorkflowTask) -> Dict[str, Any]:
+        self.start_timer()
+
+        validation_passed = self.validate_task(task)
+        task.mark_completed()
+
+        return {
+            'status': task.get_status(),
+            'processing_time': self.get_execution_time(),
+            'strategy_used': Strategies.URGENT.value,
+            'validation_passed': validation_passed
+        }
 
 
 # TODO: Zaimplementuj klasę StandardTaskProcessor
@@ -96,8 +147,29 @@ class UrgentTaskProcessor:
 #   - Oznacz zadanie jako completed (task.mark_completed())
 #   - Zwróć dict z kluczami: "status" (str), "processing_time" (float), "strategy_used" (str = "standard"), "validation_passed" (bool)
 
-class StandardTaskProcessor:
-    pass
+class StandardTaskProcessor(TaskProcessor, TaskTimer):
+    def __init__(self):
+        super().__init__()
+
+    def __str__(self):
+        return Strategies.STANDARD.value
+
+    def validate_task(self, task: WorkflowTask) -> bool:
+        return task.title and len(task.title) >= 3
+
+    def process_task(self, task: WorkflowTask) -> Dict[str, Any]:
+        self.start_timer()
+
+        time.sleep(1)
+        validation_passed = self.validate_task(task)
+        task.mark_completed()
+
+        return {
+            'status': task.get_status(),
+            'processing_time': self.get_execution_time(),
+            'strategy_used': Strategies.STANDARD.value,
+            'validation_passed': validation_passed
+        }
 
 
 # TODO: Zaimplementuj klasę BackgroundTaskProcessor
@@ -109,8 +181,29 @@ class StandardTaskProcessor:
 #   - Oznacz zadanie jako completed (task.mark_completed())
 #   - Zwróć dict z kluczami: "status" (str), "processing_time" (float), "strategy_used" (str = "background"), "validation_passed" (bool)
 
-class BackgroundTaskProcessor:
-    pass
+class BackgroundTaskProcessor(TaskProcessor, TaskTimer):
+    def __init__(self):
+        super().__init__()
+
+    def __str__(self):
+        return Strategies.BACKGROUND.value
+
+    def validate_task(self, task: WorkflowTask) -> bool:
+        return task.priority != TaskPriority.URGENT
+
+    def process_task(self, task: WorkflowTask) -> Dict[str, Any]:
+        self.start_timer()
+
+        validation_passed = self.validate_task(task)
+        time.sleep(0.1)
+        task.mark_completed()
+
+        return {
+            'status': task.get_status(),
+            'processing_time': self.get_execution_time(),
+            'strategy_used': Strategies.BACKGROUND.value,
+            'validation_passed': validation_passed
+        }
 
 
 # %% Context - DO IMPLEMENTACJI
@@ -129,4 +222,14 @@ class BackgroundTaskProcessor:
 #   - Zwraca wynik z process_task()
 
 class TaskManager:
-    pass
+    def __init__(self, strategy: TaskProcessor | None = None):
+        self.strategy = strategy
+
+    def set_strategy(self, strategy: TaskProcessor) -> None:
+        self.strategy = strategy
+
+    def execute_task(self, task: WorkflowTask) -> Dict[str, Any]:
+        if not self.strategy:
+            raise ValueError('No strategy set')
+
+        return self.strategy.process_task(task)
