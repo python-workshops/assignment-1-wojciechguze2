@@ -51,7 +51,7 @@ def add(a, b):
     Returns:
         Sum of a and b
     """
-    pass
+    return a + b
 
 
 def multiply(a, b):
@@ -65,4 +65,4 @@ def multiply(a, b):
     Returns:
         Product of a and b
     """
-    pass
+    return a * b
