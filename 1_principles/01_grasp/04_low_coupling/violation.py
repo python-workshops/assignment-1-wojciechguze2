@@ -24,6 +24,11 @@ class Database:
         return f"Saved score {score} for {player}"
 
 
+class ScoreService:
+    def __init__(self, game: Game):
+        ...
+
+
 class Game:
     """
     ❌ PROBLEM: Bezpośrednia zależność od Database

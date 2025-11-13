@@ -101,8 +101,17 @@ class Bow(Weapon):
 #   - Wywołuje self.create_weapon() aby stworzyć broń
 #   - Zwraca: "{name} attacks with {weapon_name} for {damage} damage!"
 
-class Character:
-    pass
+class Character(ABC):
+    def __init__(self, name: str):
+        self.name = name
+
+    @abstractmethod
+    def create_weapon(self): ...
+
+    def attack(self):
+        weapon = self.create_weapon()
+
+        return f'{self.name} attacks with {weapon.get_name()} for {weapon.get_damage()} damage!'
 
 
 # %% STEP 4: Concrete Creators (Warrior, Mage, Archer)
@@ -111,24 +120,27 @@ class Character:
 # Dziedziczy po Character
 # Nadpisz create_weapon() - zwraca Sword()
 
-class Warrior:
-    pass
+class Warrior(Character):
+    def create_weapon(self):
+        return Sword()
 
 
 # TODO: Zaimplementuj klasę Mage
 # Dziedziczy po Character
 # Nadpisz create_weapon() - zwraca Staff()
 
-class Mage:
-    pass
+class Mage(Character):
+    def create_weapon(self):
+        return Staff()
 
 
 # TODO: Zaimplementuj klasę Archer
 # Dziedziczy po Character
 # Nadpisz create_weapon() - zwraca Bow()
 
-class Archer:
-    pass
+class Archer(Character):
+    def create_weapon(self):
+        return Bow()
 
 
 # %% Run
