@@ -1,52 +1,53 @@
 """
->>> import sys; sys.tracebacklimit = 0
-
->>> # Test factory creation
->>> warrior_factory = get_equipment_factory("warrior")
->>> mage_factory = get_equipment_factory("mage")
->>> archer_factory = get_equipment_factory("archer")
-
->>> # Test warrior equipment (high damage + defense)
->>> warrior_weapon = warrior_factory.create_weapon()
->>> warrior_armor = warrior_factory.create_armor()
->>> warrior_weapon.damage() >= 80
-True
->>> warrior_armor.defense() >= 50
-True
->>> "sword" in warrior_weapon.get_name().lower()
-True
-
->>> # Test mage equipment (medium damage + low defense)
->>> mage_weapon = mage_factory.create_weapon()
->>> mage_armor = mage_factory.create_armor()
->>> mage_weapon.damage() >= 40
-True
->>> mage_armor.defense() >= 15
-True
->>> "staff" in mage_weapon.get_name().lower()
-True
-
->>> # Test archer equipment (medium-high damage + medium defense)
->>> archer_weapon = archer_factory.create_weapon()
->>> archer_armor = archer_factory.create_armor()
->>> archer_weapon.damage() >= 60
-True
->>> archer_armor.defense() >= 25
-True
->>> "bow" in archer_weapon.get_name().lower()
-True
-
->>> # Test case insensitive
->>> factory1 = get_equipment_factory("WARRIOR")
->>> factory2 = get_equipment_factory("warrior")
->>> type(factory1).__name__ == type(factory2).__name__
-True
-
->>> # Test error handling
->>> get_equipment_factory("invalid")
-Traceback (most recent call last):
-ValueError: Unknown character class: invalid
+# >>> import sys; sys.tracebacklimit = 0
+#
+# >>> # Test factory creation
+# >>> warrior_factory = get_equipment_factory("warrior")
+# >>> mage_factory = get_equipment_factory("mage")
+# >>> archer_factory = get_equipment_factory("archer")
+#
+# >>> # Test warrior equipment (high damage + defense)
+# >>> warrior_weapon = warrior_factory.create_weapon()
+# >>> warrior_armor = warrior_factory.create_armor()
+# >>> warrior_weapon.damage() >= 80
+# True
+# >>> warrior_armor.defense() >= 50
+# True
+# >>> "sword" in warrior_weapon.get_name().lower()
+# True
+#
+# >>> # Test mage equipment (medium damage + low defense)
+# >>> mage_weapon = mage_factory.create_weapon()
+# >>> mage_armor = mage_factory.create_armor()
+# >>> mage_weapon.damage() >= 40
+# True
+# >>> mage_armor.defense() >= 15
+# True
+# >>> "staff" in mage_weapon.get_name().lower()
+# True
+#
+# >>> # Test archer equipment (medium-high damage + medium defense)
+# >>> archer_weapon = archer_factory.create_weapon()
+# >>> archer_armor = archer_factory.create_armor()
+# >>> archer_weapon.damage() >= 60
+# True
+# >>> archer_armor.defense() >= 25
+# True
+# >>> "bow" in archer_weapon.get_name().lower()
+# True
+#
+# >>> # Test case insensitive
+# >>> factory1 = get_equipment_factory("WARRIOR")
+# >>> factory2 = get_equipment_factory("warrior")
+# >>> type(factory1).__name__ == type(factory2).__name__
+# True
+#
+# >>> # Test error handling
+# >>> get_equipment_factory("invalid")
+# Traceback (most recent call last):
+# ValueError: Unknown character class: invalid
 """
+from enum import Enum
 
 # %% About
 # - Name: Abstract Factory - Equipment Systems RPG
@@ -79,6 +80,13 @@ from abc import ABC, abstractmethod
 # - Tests: `python -m pytest test_abstract_factory.py -v`
 
 # %% TODO: Implement Product Interfaces
+
+
+class CharacterClassEnum(Enum):
+    WARRIOR = 'warrior'
+    MAGE = 'mage'
+    ARCHER = 'archer'
+
 
 class Weapon(ABC):
     """Bazowy interfejs dla broni"""
@@ -126,65 +134,107 @@ class EquipmentFactory(ABC):
 
 # %% TODO: Implement Concrete Products - Weapons
 
-class Sword:
-    pass
+class Sword(Weapon):
+    def damage(self) -> int:
+        return 80
+
+    def get_name(self) -> str:
+        return 'Sword'
 
 
-class Staff:
-    pass
+class Staff(Weapon):
+    def damage(self) -> int:
+        return 40
+
+    def get_name(self) -> str:
+        return 'Staff'
 
 
-class Bow:
-    pass
+class Bow(Weapon):
+    def damage(self) -> int:
+        return 60
+
+    def get_name(self) -> str:
+        return 'Bow'
 
 
-# %% TODO: Implement Concrete Products - Armor
+# %% Implement Concrete Products - Armor
 
-class HeavyArmor:
-    pass
+class HeavyArmor(Armor):
+    def defense(self) -> int:
+        return 50
+
+    def get_name(self) -> str:
+        return 'HeavyArmor'
 
 
-class LightRobe:
-    pass
+class LightRobe(Armor):
+    def defense(self) -> int:
+        return 15
+
+    def get_name(self) -> str:
+        return 'LightRobe'
 
 
-class LeatherArmor:
-    pass
+class LeatherArmor(Armor):
+    def defense(self) -> int:
+        return 25
+
+    def get_name(self) -> str:
+        return 'LeatherArmor'
 
 
 # %% TODO: Implement Concrete Factories
 
-class WarriorEquipmentFactory:
-    pass
+class WarriorEquipmentFactory(EquipmentFactory):
+    def create_armor(self) -> Armor:
+        return HeavyArmor()
+
+    def create_weapon(self) -> Weapon:
+        return Sword()
 
 
-class MageEquipmentFactory:
-    pass
+class MageEquipmentFactory(EquipmentFactory):
+    def create_armor(self) -> Armor:
+        return LightRobe()
+
+    def create_weapon(self) -> Weapon:
+        return Staff()
 
 
-class ArcherEquipmentFactory:
-    pass
+class ArcherEquipmentFactory(EquipmentFactory):
+    def create_armor(self) -> Armor:
+        return LeatherArmor()
+
+    def create_weapon(self) -> Weapon:
+        return Bow()
 
 
 # %% TODO: Implement Factory Method
+def validate_character_class(character_class: str) -> bool:
+    if not character_class or character_class.lower() not in [c.value for c in CharacterClassEnum]:
+        raise ValueError(f'character class "{character_class}" not implemented')
+
+    return True
+
 
 def get_equipment_factory(character_class: str) -> EquipmentFactory:
-    """
-    Factory Method zwracający odpowiednią fabrykę dla klasy postaci
+    validate_character_class(character_class)
 
-    Args:
-        character_class: "warrior", "mage", lub "archer"
+    match character_class.lower():
+        case CharacterClassEnum.WARRIOR.value:
+            return WarriorEquipmentFactory()
+        case CharacterClassEnum.MAGE.value:
+            return MageEquipmentFactory()
+        case CharacterClassEnum.ARCHER.value:
+            return ArcherEquipmentFactory()
 
-    Returns:
-        Instancja odpowiedniej fabryki
+    raise NotImplementedError('to sie nigdy nie zadzieje')
 
-    Raises:
-        ValueError: Gdy character_class jest nieznany
-    """
-    pass
 
 # %% Example Usage
 # Odkomentuj gdy zaimplementujesz
+# działa - sprawdzone
 # if __name__ == "__main__":
 #     # Test different equipment sets
 #     classes = ["warrior", "mage", "archer"]
@@ -202,3 +252,4 @@ def get_equipment_factory(character_class: str) -> EquipmentFactory:
 #         # Test equipment synergy
 #         total_power = weapon.damage() + armor.defense()
 #         print(f"Total Power: {total_power}")
+#
