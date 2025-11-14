@@ -49,6 +49,10 @@ class Strategies(Enum):
     BACKGROUND = "background"
     URGENT = "urgent"
 
+    @staticmethod
+    def get_values() -> list[str]:
+        return [s.value for s in Strategies]
+
 
 class WorkflowTask:
     """Zadanie w workflow system"""
@@ -78,6 +82,11 @@ class TaskProcessor(ABC):
     """Interface dla strategii przetwarzania zadań"""
 
     @abstractmethod
+    def __str__(self) -> str:
+        """Zwróć nazwę strategii"""
+        ...
+
+    @abstractmethod
     def process_task(self, task: WorkflowTask) -> Dict[str, Any]:
         """Przetworz zadanie i zwróć wynik"""
         pass
@@ -94,8 +103,8 @@ class TaskTimer:
     def end_timer(self):
         self.end_time = time.time()
 
-    def get_execution_time(self) -> float:
-        if not self.end_time:
+    def get_processing_time(self) -> float:
+        if self.end_time is None:
             self.end_timer()
 
         return self.end_time - self.start_time
@@ -109,7 +118,7 @@ class TaskTimer:
 # Dziedziczy po TaskProcessor
 # Metoda process_task(task: WorkflowTask) -> Dict[str, Any]:
 #   - Zapisz start time (time.time())
-#   - Walidacja: sprawdź czy task.priority == URGENT i description nie jest puste  # TODO: test_validation_differences dopytać czemu jest ustawiane MEDIUM
+#   - Walidacja: sprawdź czy task.priority == URGENT i description nie jest puste
 #   - Natychmiastowe przetwarzanie (bez delay, bez time.sleep)
 #   - Oznacz zadanie jako completed (task.mark_completed())
 #   - Zwróć dict z kluczami: "status" (str), "processing_time" (float), "strategy_used" (str = "urgent"), "validation_passed" (bool)
@@ -132,8 +141,8 @@ class UrgentTaskProcessor(TaskProcessor, TaskTimer):
 
         return {
             'status': task.get_status(),
-            'processing_time': self.get_execution_time(),
-            'strategy_used': Strategies.URGENT.value,
+            'processing_time': self.get_processing_time(),
+            'strategy_used': str(self),
             'validation_passed': validation_passed
         }
 
@@ -166,8 +175,8 @@ class StandardTaskProcessor(TaskProcessor, TaskTimer):
 
         return {
             'status': task.get_status(),
-            'processing_time': self.get_execution_time(),
-            'strategy_used': Strategies.STANDARD.value,
+            'processing_time': self.get_processing_time(),
+            'strategy_used': str(self),
             'validation_passed': validation_passed
         }
 
@@ -200,8 +209,8 @@ class BackgroundTaskProcessor(TaskProcessor, TaskTimer):
 
         return {
             'status': task.get_status(),
-            'processing_time': self.get_execution_time(),
-            'strategy_used': Strategies.BACKGROUND.value,
+            'processing_time': self.get_processing_time(),
+            'strategy_used': str(self),
             'validation_passed': validation_passed
         }
 
@@ -229,7 +238,7 @@ class TaskManager:
         self.strategy = strategy
 
     def execute_task(self, task: WorkflowTask) -> Dict[str, Any]:
-        if not self.strategy:
-            raise ValueError('No strategy set')
+        if not self.strategy or str(self.strategy) not in Strategies.get_values():
+            raise ValueError(f'No strategy set')
 
         return self.strategy.process_task(task)
