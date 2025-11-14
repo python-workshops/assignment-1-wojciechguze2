@@ -146,8 +146,26 @@ class PaymentProcessor(ABC):
 #       zwróć {"status": "failed", "transaction_id": None}
 
 
-class PayPalAdapter:
-    pass
+class PayPalAdapter(PaymentProcessor):
+    def __init__(self, paypal_service: PayPalService):
+        self.paypal_service = paypal_service
+
+    def process_payment(self, amount: float, currency: str) -> dict:
+        amount = int(amount * 100)
+
+        response = self.paypal_service.make_payment(amount, currency)
+
+        match response['status_code']:
+            case 200:
+                return {
+                    'status': 'success',
+                    'transaction_id': response['payment_id'],
+                }
+            case _:
+                return {
+                    'status': 'failed',
+                    'transaction_id': None
+                }
 
 
 # %% STEP 4: Stripe Adapter - DO IMPLEMENTACJI
@@ -171,8 +189,24 @@ class PayPalAdapter:
 #       zwróć {"status": "failed", "transaction_id": None}
 
 
-class StripeAdapter:
-    pass
+class StripeAdapter(PaymentProcessor):
+    def __init__(self, stripe_service: StripeService):
+        self.stripe_service = stripe_service
+
+    def process_payment(self, amount: float, currency: str) -> dict:
+        response = self.stripe_service.charge(amount, currency)
+
+        match response['paid']:
+            case True:
+                return {
+                    'status': 'success',
+                    'transaction_id': response['id'],
+                }
+            case _:
+                return {
+                    'status': False,
+                    'transaction_id': None
+                }
 
 
 # %% STEP 5: Przelewy24 Adapter - DO IMPLEMENTACJI
@@ -196,8 +230,24 @@ class StripeAdapter:
 #       zwróć {"status": "failed", "transaction_id": None}
 
 
-class Przelewy24Adapter:
-    pass
+class Przelewy24Adapter(PaymentProcessor):
+    def __init__(self, p24_service: Przelewy24Service):
+        self.p24_service = p24_service
+
+    def process_payment(self, amount: float, currency: str) -> dict:
+        response = self.p24_service.create_transaction(amount, currency)
+
+        match response['success']:
+            case True:
+                return {
+                    'status': 'success',
+                    'transaction_id': str(response['transactionId']),
+                }
+            case _:
+                return {
+                    'status': 'failed',
+                    'transaction_id': None
+                }
 
 
 # %% Example Usage

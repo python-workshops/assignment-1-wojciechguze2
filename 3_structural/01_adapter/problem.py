@@ -4,6 +4,12 @@
 import random
 import uuid
 
+from starter import (
+    Przelewy24Adapter,
+    PayPalAdapter,
+    StripeAdapter, PaymentProcessor
+)
+
 
 # Mock External APIs (do demonstracji)
 class PayPalService:
@@ -34,67 +40,28 @@ class Przelewy24Service:
         }
 
 
-# ❌ PROBLEM: Wszystkie systemy płatności obsługiwane przez if/elif
 class PaymentManager:
-    """
-    Manager płatności BEZ wzorca Adapter
-
-    Problem: Każdy system płatności ma INNY interfejs i wymaga INNEJ logiki
-    """
-
-    def __init__(self):
-        self.paypal = PayPalService()
-        self.stripe = StripeService()
-        self.p24 = Przelewy24Service()
-
-    def process_payment(self, provider: str, amount: float, currency: str) -> dict:
-        """❌ Wszystkie systemy płatności w jednym miejscu z if/elif"""
-
-        if provider == "paypal":
-            # PayPal wymaga kwoty w centach
-            amount_cents = int(amount * 100)
-            response = self.paypal.make_payment(amount_cents, currency)
-            # Konwersja odpowiedzi PayPal
-            if response["status_code"] == 200:
-                return {"status": "success", "transaction_id": response["payment_id"]}
-            else:
-                return {"status": "failed", "transaction_id": None}
-
-        elif provider == "stripe":
-            # Stripe zwraca inny format odpowiedzi
-            response = self.stripe.charge(amount, currency)
-            # Konwersja odpowiedzi Stripe
-            if response["paid"]:
-                return {"status": "success", "transaction_id": response["id"]}
-            else:
-                return {"status": "failed", "transaction_id": None}
-
-        elif provider == "przelewy24":
-            # Przelewy24 ma jeszcze inny format
-            response = self.p24.create_transaction(amount, currency)
-            # Konwersja odpowiedzi Przelewy24
-            if response["success"]:
-                return {"status": "success", "transaction_id": str(response["transactionId"])}
-            else:
-                return {"status": "failed", "transaction_id": None}
-
-        else:
-            return {"status": "failed", "transaction_id": None}
+    @staticmethod
+    def process_payment(payment_adapter: PaymentProcessor, amount: float, currency: str) -> dict:
+        return payment_adapter.process_payment(amount, currency)
 
 
 # ❌ Przykład użycia
 if __name__ == "__main__":
-    manager = PaymentManager()
-
     # Działa, ale kod jest nieelastyczny
-    result = manager.process_payment("paypal", 100.50, "USD")
+    paypal_adapter = PayPalAdapter(PayPalService())
+    result = PaymentManager.process_payment(paypal_adapter, 100.50, "USD")
     print(f"PayPal: {result['status']}")
 
-    result = manager.process_payment("stripe", 50.00, "EUR")
+    stripe_adapter = StripeAdapter(StripeService())
+    result = PaymentManager.process_payment(stripe_adapter, 50.00, "EUR")
     print(f"Stripe: {result['status']}")
 
     # ❌ Chcę dodać nowy system płatności (Apple Pay)?
     # Muszę EDYTOWAĆ metodę process_payment() (dodać elif)
+    # apple_adapter = AppleAdapter(AppleService())
+    # result = PaymentManager.process_payment(stripe_adapter, 0, "PLN")
+    # print(f"Apple: {result['status']}")
 
     # ❌ Chcę testować tylko logikę PayPal w izolacji?
     # Muszę testować całą klasę PaymentManager
